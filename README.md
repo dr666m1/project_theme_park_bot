@@ -7,6 +7,7 @@ before you use this app, you have to invite this app by QR code or ID.
 ID: `@541rhynx`
 
 QR code:
+![QR code](https://user-images.githubusercontent.com/26474260/69472396-f0b41c80-0dec-11ea-8520-f0f55cb9476c.png "QRcode")
 
 # usage
 you can use the functions below.
