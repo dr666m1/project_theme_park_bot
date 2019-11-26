@@ -1,14 +1,18 @@
-# from https://github.com/line/line-bot-sdk-python
+# https://github.com/line/line-bot-sdk-python
 try:
   import googleclouddebugger # debugger for google app engine
   googleclouddebugger.enable()
 except ImportError:
   pass
+from google.cloud import datastore
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage, ImageSendMessage
 import config
+import json
+import math
+import random
 
 app = Flask(__name__)
 
@@ -35,11 +39,60 @@ def callback():
         abort(400)
     return 'OK'
 
-def error(event):
-    msg = 'sorry, something went wrong. if you need help, type ":help" and check the usage.'
+def error(event, msg=None):
+    if msg is None:
+        msg = 'sorry, something went wrong. if you need help, type ":help" and check the usage.'
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage(text=msg)
+    )
+
+def combination(event, n_rider=2):
+    client = datastore.Client()
+    try:
+        id = event.source.group_id
+        table ="CombinationGroup" 
+    except AttributeError as e:
+        try:
+            id = event.source.room_id
+            table = "CombinationTalkRoom"
+        except AttributeError as e:
+            error(event)
+            return
+    key = client.key(table, id)
+    persons = [m.split() for m in event.message.text.split("\n") if m != ""][1:]
+    if persons == []: # fetch cache data
+        entity = client.get(key)
+        if entity is None:
+            error(event)
+            return
+        persons = json.loads(entity["msg"])
+    else: # upsert data
+        entity = datastore.Entity(key, exclude_from_indexes=("msg",))
+        entity.update({
+            "msg": json.dumps(persons),
+        })
+        client.put(entity)
+    n_attr = max([len(p) for p in persons]) - 1
+    persons_completed = [p + ([""] * (n_attr + 1 - len(p))) for p in persons]
+    random.shuffle(persons_completed)
+    for i in range(1, n_attr + 1):
+        persons_completed.sort(key=lambda x:x[-1 * i])
+    n_person = len(persons_completed)
+    n_group = math.ceil(n_person / n_rider)
+    i = 0
+    groups = [[""] * n_rider for x in range(n_group)]
+    for r in range(n_rider):
+        for g in range(n_group):
+            try:
+                groups[g][r] = persons_completed[i][0]
+                i += 1
+            except IndexError as e:
+                break
+    reply = "\n".join([" ".join(["[ " + str(i) + " ]"] + g) for i, g in enumerate(groups, 1)])
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text=reply)
     )
 
 def help(event):
@@ -52,11 +105,54 @@ def bye(event):
     try:
         line_bot_api.leave_group(event.source.group_id)
     except AttributeError as e:
-        pass
+        try:
+            line_bot_api.leave_room(event.source.room_id)
+        except AttributeError as e:
+            error(event)
+
+def spend(event):
+    msg = event.message.text
+    client = datastore.Client()
+    user = event.source.user_id # old version may cause problem
     try:
-        line_bot_api.leave_room(event.source.source_id)
+        id = event.source.group_id
+        table ="SpendGroup" 
     except AttributeError as e:
-        pass
+        try:
+            id = event.source.room_id
+            table = "SpendTalkRoom"
+        except AttributeError as e:
+            error(event)
+            return
+    try:
+        price = int(msg.split()[1])
+    except (ValueError, IndexError) as e:
+        error(event)
+        return
+    key = client.key(table, id)
+    entity = client.get(key)
+    if entity is None:
+        data = {}
+    else:
+        data = json.loads(entity["data"])
+    try:
+        data[user] += price
+    except KeyError as e:
+        data[user] = price
+    entity = datastore.Entity(key, exclude_from_indexes=("data",))
+    entity.update({
+        "data": json.dumps(data),
+    })
+    client.put(entity)
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text=str(data[user]))
+    )
+
+def clear(event):
+    pass
+def split(event):
+    pass
 
 def birthday(event):
     line_bot_api.reply_message(
@@ -81,6 +177,14 @@ def handle_message(event):
         bye(event)
     elif cmd[0] == ":birthday":
         birthday(event)
+    elif cmd[0] in [":comb", ":combination"]:
+        combination(event)
+    elif cmd[0] == ":split":
+        split(event)
+    elif cmd[0] == ":clear":
+        clear(event)
+    elif cmd[0] == ":spend":
+        spend(event)
     elif cmd[0][0] == ":":
         error(event)
 
