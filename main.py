@@ -7,12 +7,13 @@ except ImportError:
 from google.cloud import datastore
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
-from linebot.exceptions import InvalidSignatureError
+from linebot.exceptions import InvalidSignatureError, LineBotApiError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage, ImageSendMessage
 import config
 import json
 import math
 import random
+import numpy as np
 
 app = Flask(__name__)
 
@@ -79,9 +80,9 @@ def combination(event, n_rider=2):
     for i in range(1, n_attr + 1):
         persons_completed.sort(key=lambda x:x[-1 * i])
     n_person = len(persons_completed)
-    n_group = math.ceil(n_person / n_rider)
+    n_group = -(-n_person // n_rider) # roundup
     i = 0
-    groups = [[""] * n_rider for x in range(n_group)]
+    groups = [[""] * n_rider for _ in range(n_group)]
     for r in range(n_rider):
         for g in range(n_group):
             try:
@@ -113,10 +114,10 @@ def bye(event):
 def spend(event):
     msg = event.message.text
     client = datastore.Client()
-    user = event.source.user_id # old version may cause problem
+    user = event.source.user_id # old version of line app may cause problem
     try:
         id = event.source.group_id
-        table ="SpendGroup" 
+        table = "SpendGroup" 
     except AttributeError as e:
         try:
             id = event.source.room_id
@@ -150,9 +151,85 @@ def spend(event):
     )
 
 def clear(event):
-    pass
+    client = datastore.Client()
+    try:
+        id = event.source.group_id
+        table = "SpendGroup" 
+    except AttributeError as e:
+        try:
+            id = event.source.room_id
+            table = "SpendTalkRoom"
+        except AttributeError as e:
+            error(event)
+            return
+    key = client.key(table, id)
+    client.delete(key)
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text="done!")
+    )
+
 def split(event):
-    pass
+    msg = event.message.text
+    client = datastore.Client()
+    try:
+        id = event.source.group_id
+        table = "SpendGroup" 
+    except AttributeError as e:
+        try:
+            id = event.source.room_id
+            table = "SpendTalkRoom"
+        except AttributeError as e:
+            error(event)
+            return
+    key = client.key(table, id)
+    entity = client.get(key)
+    if entity is None:
+        error(event)
+        return
+    data = json.loads(entity["data"])
+    replys = []
+    # show total
+    replys.append("# total price")
+    names = []
+    for k, v in data.items():
+        try:
+            names.append(line_bot_api.get_profile(k).display_name)
+        except LineBotApiError as e:
+            names.append(k)
+        replys.append(names[-1] + " : " + "{:>9,d}".format(v))
+        # lower than 9,999,999 is expected
+    # payment
+    replys.append("# payment")
+    try:
+        n_person = int(msg.split()[1])
+    except IndexError as e:
+        n_person = len(data)
+    except ValueError as e:
+        error(event)
+        return
+    matrix = np.zeros((n_person, n_person), dtype=np.int64)
+    for i, v in enumerate(data.values()):
+        matrix[:, i] += v // n_person
+        matrix[i, :] -= v // n_person
+    for i in range(n_person):
+        flg = False
+        try:
+            replys_personal = [names[i]]
+        except IndexError as e:
+            replys_personal = ["unknown"]
+        for j in range(n_person):
+            if matrix[i, j] > 0:
+                flg = True
+                replys_personal.append("  " + "{:>9,d}".format(matrix[i, j]) + " -> " + names[j])
+                # lower than 9,999,999 is expected
+        if flg:
+            replys += replys_personal
+    reply = "\n".join(replys)
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text=reply)
+    )
 
 def birthday(event):
     line_bot_api.reply_message(
