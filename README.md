@@ -1,3 +1,5 @@
+english [README.md](https://github.com/dr666m1/project_theme_park_bot/tree/master/en) is also available.
+
 # 概要
 ディズニーやUSJといったテーマパークを快適に楽しむためのLINEbotです。
 
