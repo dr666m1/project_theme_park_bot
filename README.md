@@ -1,8 +1,12 @@
-# concept
-this app enables you to enjoy theme parks such as disney resort, USJ and so on!
+# 概要
+ディズニーやUSJといったテーマパークを快適に楽しむためのLINEbotです。
 
-# prepare
-before you use this app, you have to invite this app by QR code or ID.
+アトラクションに乗るペア分けや、ポップコーンの割り勘などがLINEのグループやトークルーム内で完結します。
+
+# 準備
+グループやトークルームに招待するだけですぐに利用できます。
+
+以下のID、またはQRコードから検索してください。
 
 ID: `@541rhynx`
 
@@ -10,28 +14,73 @@ QR code:
 
 ![QR code](https://user-images.githubusercontent.com/26474260/69472396-f0b41c80-0dec-11ea-8520-f0f55cb9476c.png "QRcode")
 
-# usage
-you can use the functions below.
+# 使い方
+以下の関数が利用できます。
 
-don't forget leading `:`. (e.g.`:help`)
+先頭の`:`を忘れるとbotから認識されないので注意してください。（e.g.`:help`）
 
-myapp ignores messages without `:`.
+単語の区切りには半角スペースを利用してください（全角スペースを使うと意図通りに動作しません）。
 
-## help
-show the link to this page.
+## help `:help`
+このページへのリンクを返します。
 
+## combination `:combination` or `:comb`
+アトラクションに乗るペア分けをランダムに決める関数です。
 
-## comb, combination
+`:comb`の後に改行してメンバーを指定できます（書き方は以下の例を参考にすること）。
+
+一度指定するとメンバーが記録されるので、二回目以降は`:comb`だけでペア分けができます（メンバーはグループ、もしくはトークルームに紐づいて記録されます）。
+
+メンバーを追加したり削除したりしたいときは、もう一度最初と同じようにメンバーを指定してください。
+
+記録が上書きされて、次回以降新しいメンバーでペア分けされます。
+
+```
+:comb
+sato
+ito
+suzuki
+tanaka
+```
+
+「なるべく男女ペアにしたい」といった場合に対応できるよう、任意の数の属性を指定できます。
+以下の例ではsatoとsuzuki（itoとtanaka）は絶対に同じペアにはなりません。
+
+```
+:comb
+sato male
+ito female
+suzuki male
+tanaka female
+```
 
 ## expense
-### expence *integer*
-### expence clear
-### expence split
+出費を記録したり、割り勘をするために関数です。
 
-## bye
-kick out this app from the group or talk room.
+### expence *integer* `:expence <int>`
+あなたの出費を記録して、現在の出費の総額を返します。
 
-when you are talkig alone, nothing will happen.
+金額は半角数字で入力してください。
+
+二回目以降はもともとの金額に加算されていきます。
+
+記録はグループやトークルームに紐づいているので、他のグループやトークルームでの出費とは合算されません。
+
+### expence_split `:expence_split` or `:split`
+現在の出費の総額や、誰が誰にいくら払ったらよいかを計算します。
+
+半角数字で割り勘をする人数を指定することもできます（e.g.`:split 4`）。
+
+人数を指定しない場合は出費をしている人数で割り勘されます（すなわち、1円も払っていない人は無視されます）。
+
+### expence_clear `:expence_clear` or `:clear`
+出費の記録を削除します。
+
+自分の出費だけでなく、グループやトークルーム全員の出費が消えることに注意してください。
+
+## bye `:bye`
+このLINEbotをグループやトークルームから退会させます。
+
 <!--
 ## birthday
 -->

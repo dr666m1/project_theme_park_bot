@@ -111,7 +111,7 @@ def bye(event):
         except AttributeError as e:
             error(event)
 
-def spend(event):
+def expence(event):
     msg = event.message.text
     client = datastore.Client()
     user = event.source.user_id # old version of line app may cause problem
@@ -200,7 +200,7 @@ def split(event):
         replys.append(names[-1] + " : " + "{:>9,d}".format(v))
         # lower than 9,999,999 is expected
     # payment
-    replys.append("# payment")
+    replys.append("\n# payment")
     try:
         n_person = int(msg.split()[1])
     except IndexError as e:
@@ -256,12 +256,12 @@ def handle_message(event):
         birthday(event)
     elif cmd[0] in [":comb", ":combination"]:
         combination(event)
-    elif cmd[0] == ":split":
+    elif cmd[0] in [":split", ":expence_split"]:
         split(event)
-    elif cmd[0] == ":clear":
+    elif cmd[0] in [":clear", ":expence_clear"]:
         clear(event)
-    elif cmd[0] == ":spend":
-        spend(event)
+    elif cmd[0] == ":expence":
+        expence(event)
     elif cmd[0][0] == ":":
         error(event)
 
