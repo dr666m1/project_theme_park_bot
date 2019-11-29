@@ -235,9 +235,9 @@ def birthday(event):
     line_bot_api.reply_message(
         event.reply_token,
         [
-            TextSendMessage(text="なんと..."),
-            TextSendMessage(text="今日はゆっこちゃんに..."),
-            TextSendMessage(text="誕生日プレゼントがあります！！"),
+            TextSendMessage(text="something surprising"),
+            TextSendMessage(text="something surprising"),
+            TextSendMessage(text="something surprising"),
             #ImageSendMessage(
             #    original_content_url="",
             #    preview_image_url="",
