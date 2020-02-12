@@ -5,7 +5,7 @@ try:
 except ImportError:
   pass
 from google.cloud import datastore
-from flask import Flask, request, abort
+from flask import Flask, request, abort, redirect
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError, LineBotApiError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage, ImageSendMessage
@@ -20,10 +20,15 @@ app = Flask(__name__)
 line_bot_api = LineBotApi(config.token)
 handler = WebhookHandler(config.secret)
 url_github = "https://github.com/dr666m1/project_theme_park_bot"
+url_test = "googlechrome://google.co.jp"
 
 @app.route("/")
 def github():
     return redirect(url_github)
+
+@app.route("/test")
+def testurl():
+    return redirect(url_test)
 
 @app.route("/callback", methods=['POST'])
 def callback():
