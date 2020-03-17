@@ -10,12 +10,12 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError, LineBotApiError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage, ImageSendMessage
 import config
-import json
-import math
 import random
 import numpy as np
+import re
 
 app = Flask(__name__)
+client = datastore.Client()
 
 line_bot_api = LineBotApi(config.token)
 handler = WebhookHandler(config.secret)
@@ -40,230 +40,156 @@ def callback():
         abort(400)
     return 'OK'
 
-def error(event, msg=None):
-    if msg is None:
-        msg = 'sorry, something went wrong. if you need help, type ":help" and check the usage.'
+def reply(event, reply_msg=None):
+    if reply_msg is None:
+        reply_msg = '何かお困りですか？\n使い方は説明書をご確認ください。\n※環境によってはView all of README.mdを押さないと全文表示されません。\n{}'.format(url_github)
     line_bot_api.reply_message(
         event.reply_token,
-        TextSendMessage(text=msg)
+        TextSendMessage(text=reply_msg)
     )
 
+def spend(event):
+    receive_msg = event.message.text
+    user_id = event.source.user_id
+    if hasattr(event.source, "group_id"):
+        group_id = event.source.group_id
+    elif hasattr(event.source, "room_id"):
+        group_id = event.source.room_id
+    else:
+        reply(event)
+        return
+    price = int(re.search(r"^[y|Y]([-|ー]?[0-9,]+)$", receive_msg).groups()[0].replace(",", ""))
+    user_key = client.key("ThemeParkGroup", group_id, "ThemeParkUser", user_id)
+    user_entity = client.get(user_key)
+    if user_entity is None:
+        user_entity = datastore.Entity(key = user_key, exclude_from_indexes=("price",))
+    else:
+        price += user_entity["price"]
+    if price < 0:
+        reply(event, "出費が0円を下回ります。\n金額を確認してください。")
+        return
+    user_entity.update({
+        "price": price
+    })
+    client.put(user_entity)
+    reply(event, "{:,d}".format(price))
+
 def combination(event, n_rider=2):
-    client = datastore.Client()
-    try:
-        id = event.source.group_id
-        table ="CombinationGroup" 
-    except AttributeError as e:
-        try:
-            id = event.source.room_id
-            table = "CombinationTalkRoom"
-        except AttributeError as e:
-            error(event)
+    if hasattr(event.source, "group_id"):
+        group_id = event.source.group_id
+    elif hasattr(event.source, "room_id"):
+        group_id = event.source.room_id
+    else:
+        reply(event)
+        return
+    group_key = client.key("ThemeParkGroup", group_id)
+    members = [re.sub(r"[ 　]+", " ", m) for m in event.message.text.split("\n") if re.search(r"^[ 　]+$", m) is None][1:]
+    if members == []: # fetch cache data
+        group_entity = client.get(group_key)
+        if group_entity is None:
+            reply(event, "メンバーが指定されておらず、履歴も見つかりません。")
             return
-    key = client.key(table, id)
-    persons = [m.split() for m in event.message.text.split("\n") if m != ""][1:]
-    if persons == []: # fetch cache data
-        entity = client.get(key)
-        if entity is None:
-            error(event)
-            return
-        persons = json.loads(entity["msg"])
+        else:
+            members = group_entity["members"]
     else: # upsert data
-        entity = datastore.Entity(key, exclude_from_indexes=("msg",))
-        entity.update({
-            "msg": json.dumps(persons),
+        group_entity = datastore.Entity(group_key, exclude_from_indexes=("members",))
+        group_entity.update({
+            "members": members,
         })
-        client.put(entity)
-    n_attr = max([len(p) for p in persons]) - 1
-    persons_completed = [p + ([""] * (n_attr + 1 - len(p))) for p in persons]
-    random.shuffle(persons_completed)
+        client.put(group_entity)
+    members_parsed = [m.split(" ") for m in members]
+    n_attr = max([len(m) for m in members_parsed]) - 1
+    members_completed = [m + ([""] * (n_attr + 1 - len(m))) for m in members_parsed]
+    random.shuffle(members_completed)
     for i in range(1, n_attr + 1):
-        persons_completed.sort(key=lambda x:x[-1 * i])
-    n_person = len(persons_completed)
-    n_group = -(-n_person // n_rider) # roundup
+        members_completed.sort(key=lambda x: x[-1 * i])
+    n_member = len(members_completed)
+    n_pair = -(-n_member // n_rider) # roundup
     i = 0
-    groups = [[""] * n_rider for _ in range(n_group)]
+    pairs = [[""] * n_rider for _ in range(n_pair)]
     for r in range(n_rider):
-        for g in range(n_group):
+        for p in range(n_pair):
             try:
-                groups[g][r] = persons_completed[i][0]
+                pairs[p][r] = members_completed[i][0]
                 i += 1
             except IndexError as e:
                 break
-    reply = "\n".join([" ".join(["[ " + str(i) + " ]"] + g) for i, g in enumerate(groups, 1)])
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage(text=reply)
-    )
-
-def help(event):
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage(text=url_github)
-    )
+    reply_msg = "\n".join([" ".join(["[ {} ]".format(i + 1)] + p) for i, p in enumerate(pairs)])
+    reply(event, reply_msg)
 
 def bye(event):
-    try:
-        line_bot_api.leave_group(event.source.group_id)
-    except AttributeError as e:
-        try:
-            line_bot_api.leave_room(event.source.room_id)
-        except AttributeError as e:
-            error(event)
-
-def expence(event):
-    msg = event.message.text
-    client = datastore.Client()
-    user = event.source.user_id # old version of line app may cause problem
-    try:
-        id = event.source.group_id
-        table = "SpendGroup" 
-    except AttributeError as e:
-        try:
-            id = event.source.room_id
-            table = "SpendTalkRoom"
-        except AttributeError as e:
-            error(event)
-            return
-    try:
-        price = int(msg.split()[1])
-    except (ValueError, IndexError) as e:
-        error(event)
-        return
-    key = client.key(table, id)
-    entity = client.get(key)
-    if entity is None:
-        data = {}
+    if hasattr(event.source, "group_id"):
+        group_id = event.source.group_id
+        line_bot_api.leave_group(group_id)
+    elif hasattr(event.source, "room_id"):
+        group_id = event.source.room_id
+        line_bot_api.leave_room(group_id)
     else:
-        data = json.loads(entity["data"])
-    try:
-        data[user] += price
-    except KeyError as e:
-        data[user] = price
-    entity = datastore.Entity(key, exclude_from_indexes=("data",))
-    entity.update({
-        "data": json.dumps(data),
-    })
-    client.put(entity)
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage(text=str(data[user]))
-    )
-
-def clear(event):
-    client = datastore.Client()
-    try:
-        id = event.source.group_id
-        table = "SpendGroup" 
-    except AttributeError as e:
-        try:
-            id = event.source.room_id
-            table = "SpendTalkRoom"
-        except AttributeError as e:
-            error(event)
-            return
-    key = client.key(table, id)
-    client.delete(key)
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage(text="done!")
-    )
+        reply(event)
+        return
+    group_key = client.key("ThemeParkGroup", group_id)
+    query = client.query(kind="ThemeParkUser", ancestor=group_key)
+    res = query.fetch()
+    for i in res:
+        client.delete(i.key)
 
 def split(event):
-    msg = event.message.text
-    client = datastore.Client()
-    try:
-        id = event.source.group_id
-        table = "SpendGroup" 
-    except AttributeError as e:
-        try:
-            id = event.source.room_id
-            table = "SpendTalkRoom"
-        except AttributeError as e:
-            error(event)
-            return
-    key = client.key(table, id)
-    entity = client.get(key)
-    if entity is None:
-        error(event)
+    receive_msg = event.message.text
+    if hasattr(event.source, "group_id"):
+        group_id = event.source.group_id
+    elif hasattr(event.source, "room_id"):
+        group_id = event.source.room_id
+    else:
+        reply(event)
         return
-    data = json.loads(entity["data"])
-    replys = []
+    group_key = client.key("ThemeParkGroup", group_id)
+    query = client.query(kind="ThemeParkUser", ancestor=group_key)
+    user_infos = [{
+        "name": line_bot_api.get_profile(x.key.name).display_name,
+        "price": x["price"],
+    } for x in query.fetch()]
+    if user_infos == []:
+        reply(event, "出費の履歴が見つかりません。")
+        return
+    reply_msg = []
     # show total
-    replys.append("# total price")
-    names = []
-    for k, v in data.items():
-        try:
-            names.append(line_bot_api.get_profile(k).display_name)
-        except LineBotApiError as e:
-            names.append(k)
-        replys.append(names[-1] + " : " + "{:>9,d}".format(v))
-        # lower than 9,999,999 is expected
+    reply_msg.append("【出費】\n")
+    for i in user_infos:
+        reply_msg.append("{}: {:,d}\n".format(i["name"], i["price"]))
     # payment
-    replys.append("\n# payment")
-    try:
-        n_person = int(msg.split()[1])
-    except IndexError as e:
-        n_person = len(data)
-    except ValueError as e:
-        error(event)
-        return
-    matrix = np.zeros((n_person, n_person), dtype=np.int64)
-    for i, v in enumerate(data.values()):
-        matrix[:, i] += v // n_person
-        matrix[i, :] -= v // n_person
-    for i in range(n_person):
-        flg = False
-        try:
-            replys_personal = [names[i]]
-        except IndexError as e:
-            replys_personal = ["unknown"]
-        for j in range(n_person):
+    reply_msg.append("【精算】\n")
+    n_member = len(user_infos)
+    matrix = np.zeros((n_member, n_member), dtype=np.int64)
+    for i, v in enumerate(user_infos):
+        matrix[:, i] += v["price"] // n_member
+        matrix[i, :] -= v["price"] // n_member
+    for i in range(n_member):
+        gt0 = False
+        personal_msg = ""
+        for j in range(n_member):
             if matrix[i, j] > 0:
-                flg = True
-                replys_personal.append("  " + "{:>9,d}".format(matrix[i, j]) + " -> " + names[j])
-                # lower than 9,999,999 is expected
-        if flg:
-            replys += replys_personal
-    reply = "\n".join(replys)
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage(text=reply)
-    )
+                gt0 = True
+                personal_msg += "  {:,d} -> {}\n".format(matrix[i, j], user_infos[j]["name"])
+        if gt0:
+            reply_msg.append(user_infos[i]["name"] + "\n")
+            reply_msg.append(personal_msg)
+    reply(event, "".join(reply_msg))
 
-def birthday(event):
-    line_bot_api.reply_message(
-        event.reply_token,
-        [
-            TextSendMessage(text="something surprising"),
-            TextSendMessage(text="something surprising"),
-            TextSendMessage(text="something surprising"),
-            #ImageSendMessage(
-            #    original_content_url="",
-            #    preview_image_url="",
-            #),
-        ]
-    )
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    cmd = event.message.text.split()
-    if cmd[0] == ":help":
-        help(event)
-    elif cmd[0] == ":bye":
-        bye(event)
-    elif cmd[0] == ":birthday":
-        birthday(event)
-    elif cmd[0] in [":comb", ":combination"]:
-        combination(event)
-    elif cmd[0] in [":split", ":expence_split"]:
+    lines = event.message.text.split()
+    n_lines = len(lines)
+    if (n_lines == 1 and re.search(r"^[y|Y][-|ー]?[0-9,]+$", lines[0]) is not None):
+        spend(event)
+    elif (n_lines == 1 and re.search(r"^[y|Y]{2}$", lines[0]) is not None):
         split(event)
-    elif cmd[0] in [":clear", ":expence_clear"]:
-        clear(event)
-    elif cmd[0] == ":expence":
-        expence(event)
-    elif cmd[0][0] == ":":
-        error(event)
+    elif re.search(r"^[c|C]$", lines[0]) is not None:
+        combination(event)
+    elif (n_lines >= 1 and re.search(r"^[B|b]ye$", lines[0]) is not None):
+        bye(event)
+    else:
+        pass
 
 if __name__ == "__main__":
     app.run()
