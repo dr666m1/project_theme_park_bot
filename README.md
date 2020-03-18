@@ -31,7 +31,7 @@
 
 スペース区切りで属性（性別など）を入力すると、なるべく別の属性同士でペア分けします。
 
-<img src="https://user-images.githubusercontent.com/26474260/76965066-0b476e00-6967-11ea-883d-9deda0b32afd.jpg" width="300px">
+<img src="https://user-images.githubusercontent.com/26474260/76966746-c6710680-6969-11ea-9eef-97345d50239e.jpg" width="300px">
 
 ## Q and A
 ### 自分の出費額を間違えたので取り消したい
