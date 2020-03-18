@@ -11,7 +11,7 @@
 <img src="https://user-images.githubusercontent.com/26474260/69472396-f0b41c80-0dec-11ea-8520-f0f55cb9476c.png" width="100px">
 
 ## 割り勘
-<img src="https://user-images.githubusercontent.com/26474260/76966746-c6710680-6969-11ea-9eef-97345d50239e.jpg" width="300px">
+<img src="https://user-images.githubusercontent.com/26474260/76966746-c6710680-6969-11ea-9eef-97345d50239e.jpg" width="250px">
 
 ### 出費の記録
 `Y`に続けて半角数字を入力すると自分の出費を記録できます（`Y`はYenの頭文字）。
@@ -27,7 +27,7 @@
 `bye`と入力すると、出費の記録を削除してbotが退出します。
 
 ## ペア分け
-<img src="https://user-images.githubusercontent.com/26474260/76966746-c6710680-6969-11ea-9eef-97345d50239e.jpg" width="300px">
+<img src="https://user-images.githubusercontent.com/26474260/76966746-c6710680-6969-11ea-9eef-97345d50239e.jpg" width="250px">
 
 一行目に`C`、二行目以降にメンバーを入力するとランダムにペア分けされます（`C`はCombinationの頭文字）。
 
