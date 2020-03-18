@@ -42,7 +42,7 @@ def callback():
 
 def reply(event, reply_msg=None):
     if reply_msg is None:
-        reply_msg = '何かお困りですか？\n使い方は説明書をご確認ください。\n※環境によってはView all of README.mdを押さないと全文表示されません。\n{}'.format(url_github)
+        reply_msg = '何かお困りですか？使い方は説明書をご確認ください。\n\n※環境によってはView all of README.mdを押さないと全文表示されません。\n{}'.format(url_github)
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage(text=reply_msg)
