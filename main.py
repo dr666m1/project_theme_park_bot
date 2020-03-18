@@ -74,7 +74,8 @@ def spend(event):
     client.put(user_entity)
     reply(event, "{:,d}".format(price))
 
-def combination(event, n_rider=2):
+def split(event):
+    receive_msg = event.message.text
     if hasattr(event.source, "group_id"):
         group_id = event.source.group_id
     elif hasattr(event.source, "room_id"):
@@ -83,6 +84,51 @@ def combination(event, n_rider=2):
         reply(event)
         return
     group_key = client.key("ThemeParkGroup", group_id)
+    query = client.query(kind="ThemeParkUser", ancestor=group_key)
+    user_infos = [{
+        "name": line_bot_api.get_profile(x.key.name).display_name,
+        "price": x["price"],
+    } for x in query.fetch()]
+    if user_infos == []:
+        reply(event, "出費の履歴が見つかりません。")
+        return
+    reply_msg = []
+    # show total
+    reply_msg.append("【出費】\n")
+    for i in user_infos:
+        reply_msg.append("{}: {:,d}\n".format(i["name"], i["price"]))
+    # payment
+    reply_msg.append("【精算】\n")
+    n_member = len(user_infos)
+    matrix = np.zeros((n_member, n_member), dtype=np.int64)
+    for i, v in enumerate(user_infos):
+        matrix[:, i] += v["price"] // n_member
+        matrix[i, :] -= v["price"] // n_member
+    for i in range(n_member):
+        gt0 = False
+        personal_msg = ""
+        for j in range(n_member):
+            if matrix[i, j] > 0:
+                gt0 = True
+                personal_msg += "  {:,d} -> {}\n".format(matrix[i, j], user_infos[j]["name"])
+        if gt0:
+            reply_msg.append(user_infos[i]["name"] + "\n")
+            reply_msg.append(personal_msg)
+    reply(event, "".join(reply_msg))
+
+def combination(event):
+    if hasattr(event.source, "group_id"):
+        group_id = event.source.group_id
+    elif hasattr(event.source, "room_id"):
+        group_id = event.source.room_id
+    else:
+        reply(event)
+        return
+    group_key = client.key("ThemeParkGroup", group_id)
+    try:
+        n_rider = int(event.message.text.split("\n")[0][1:])
+    except ValueError as e:
+        n_rider = 2 # default
     members = [re.sub(r"[ 　]+", " ", m) for m in event.message.text.split("\n") if re.search(r"^[ 　]+$", m) is None][1:]
     if members == []: # fetch cache data
         group_entity = client.get(group_key)
@@ -133,47 +179,6 @@ def bye(event):
     for i in res:
         client.delete(i.key)
 
-def split(event):
-    receive_msg = event.message.text
-    if hasattr(event.source, "group_id"):
-        group_id = event.source.group_id
-    elif hasattr(event.source, "room_id"):
-        group_id = event.source.room_id
-    else:
-        reply(event)
-        return
-    group_key = client.key("ThemeParkGroup", group_id)
-    query = client.query(kind="ThemeParkUser", ancestor=group_key)
-    user_infos = [{
-        "name": line_bot_api.get_profile(x.key.name).display_name,
-        "price": x["price"],
-    } for x in query.fetch()]
-    if user_infos == []:
-        reply(event, "出費の履歴が見つかりません。")
-        return
-    reply_msg = []
-    # show total
-    reply_msg.append("【出費】\n")
-    for i in user_infos:
-        reply_msg.append("{}: {:,d}\n".format(i["name"], i["price"]))
-    # payment
-    reply_msg.append("【精算】\n")
-    n_member = len(user_infos)
-    matrix = np.zeros((n_member, n_member), dtype=np.int64)
-    for i, v in enumerate(user_infos):
-        matrix[:, i] += v["price"] // n_member
-        matrix[i, :] -= v["price"] // n_member
-    for i in range(n_member):
-        gt0 = False
-        personal_msg = ""
-        for j in range(n_member):
-            if matrix[i, j] > 0:
-                gt0 = True
-                personal_msg += "  {:,d} -> {}\n".format(matrix[i, j], user_infos[j]["name"])
-        if gt0:
-            reply_msg.append(user_infos[i]["name"] + "\n")
-            reply_msg.append(personal_msg)
-    reply(event, "".join(reply_msg))
 
 
 @handler.add(MessageEvent, message=TextMessage)
@@ -184,7 +189,7 @@ def handle_message(event):
         spend(event)
     elif (n_lines == 1 and re.search(r"^[y|Y]{2}$", lines[0]) is not None):
         split(event)
-    elif re.search(r"^[c|C]$", lines[0]) is not None:
+    elif re.search(r"^[c|C][0-9]*$", lines[0]) is not None:
         combination(event)
     elif (n_lines >= 1 and re.search(r"^[B|b]ye$", lines[0]) is not None):
         bye(event)
@@ -193,4 +198,3 @@ def handle_message(event):
 
 if __name__ == "__main__":
     app.run()
-
