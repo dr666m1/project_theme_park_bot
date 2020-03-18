@@ -1,5 +1,5 @@
 # テーマパークbot
-<img src="https://user-images.githubusercontent.com/26474260/76979283-13a9a400-697b-11ea-86f8-d405331f9cad.jpg" width="500px">
+<img src="https://user-images.githubusercontent.com/26474260/76980915-2624dd00-697d-11ea-9b7b-f9a2c07a7570.jpg" width="500px">
 
 ## 概要
 友人と遊園地で遊ぶときに便利なLINEbotです。
@@ -56,4 +56,4 @@ botがいるグループやトークルームで`bye`と入力してください
 余計なスペースや空行が含まれていないかをご確認ください。
 
 ### 使い方を覚えきれない！
-`help`と入力するとこのページのリンクが確認できるので、それだけでも覚えていただければ。
+`help`と入力すると説明書が確認できるので、それだけ覚えておくと便利です。
