@@ -179,8 +179,6 @@ def bye(event):
     for i in res:
         client.delete(i.key)
 
-
-
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     lines = event.message.text.split()
@@ -193,6 +191,8 @@ def handle_message(event):
         combination(event)
     elif (n_lines >= 1 and re.search(r"^[B|b]ye$", lines[0]) is not None):
         bye(event)
+    elif (n_lines >= 1 and re.search(r"^[H|h]elp$", lines[0]) is not None):
+        reply(event)
     else:
         pass
 
