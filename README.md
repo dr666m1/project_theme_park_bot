@@ -1,5 +1,5 @@
 # テーマパークbot
-<img src="https://user-images.githubusercontent.com/26474260/76981271-b6fbb880-697d-11ea-9ab7-856e270894b6.jpg" width="500px">
+<img src="https://user-images.githubusercontent.com/26474260/76981453-f7f3cd00-697d-11ea-916b-0bccfc7723d8.jpg" width="500px">
 
 ## 概要
 友人と遊園地で遊ぶときに便利なLINEbotです。
