@@ -62,7 +62,7 @@ def spend(event):
     user_key = client.key("ThemeParkGroup", group_id, "ThemeParkUser", user_id)
     user_entity = client.get(user_key)
     if user_entity is None:
-        user_entity = datastore.Entity(key = user_key, exclude_from_indexes=("price", "name"))
+        user_entity = datastore.Entity(key = user_key, exclude_from_indexes=("price",))
     else:
         price += user_entity["price"]
     if price < 0:
@@ -70,7 +70,6 @@ def spend(event):
         return
     user_entity.update({
         "price": price,
-        "name": line_bot_api.get_profile(user_id).display_name,
     })
     client.put(user_entity)
     reply(event, "{:,d}".format(price))
@@ -87,7 +86,7 @@ def split(event):
     group_key = client.key("ThemeParkGroup", group_id)
     query = client.query(kind="ThemeParkUser", ancestor=group_key)
     user_infos = [{
-        "name": x["name"],
+        "name": line_bot_api.get_room_member_profile(group_id, x.key.name).display_name)
         "price": x["price"],
     } for x in query.fetch()]
     if user_infos == []:
