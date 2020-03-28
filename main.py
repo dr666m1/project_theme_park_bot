@@ -19,7 +19,7 @@ client = datastore.Client()
 
 line_bot_api = LineBotApi(config.token)
 handler = WebhookHandler(config.secret)
-url_github = "https://github.com/dr666m1/project_theme_park_bot"
+url_github = "https://github.com/dr666m1/project_theme_park_bot/blob/master/README.md"
 
 @app.route("/")
 def github():
@@ -42,7 +42,7 @@ def callback():
 
 def reply(event, reply_msg=None):
     if reply_msg is None:
-        reply_msg = '何かお困りですか？使い方は説明書をご確認ください。\n\n※環境によってはView all of README.mdを押さないと全文表示されません。\n{}'.format(url_github)
+        reply_msg = '何かお困りですか？説明書は以下↓↓\n{}'.format(url_github)
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage(text=reply_msg)
@@ -62,14 +62,15 @@ def spend(event):
     user_key = client.key("ThemeParkGroup", group_id, "ThemeParkUser", user_id)
     user_entity = client.get(user_key)
     if user_entity is None:
-        user_entity = datastore.Entity(key = user_key, exclude_from_indexes=("price",))
+        user_entity = datastore.Entity(key = user_key, exclude_from_indexes=("price", "name"))
     else:
         price += user_entity["price"]
     if price < 0:
         reply(event, "出費が0円を下回ります。\n金額を確認してください。")
         return
     user_entity.update({
-        "price": price
+        "price": price,
+        "name": line_bot_api.get_profile(user_id).display_name,
     })
     client.put(user_entity)
     reply(event, "{:,d}".format(price))
@@ -86,7 +87,7 @@ def split(event):
     group_key = client.key("ThemeParkGroup", group_id)
     query = client.query(kind="ThemeParkUser", ancestor=group_key)
     user_infos = [{
-        "name": line_bot_api.get_profile(x.key.name).display_name,
+        "name": x["name"],
         "price": x["price"],
     } for x in query.fetch()]
     if user_infos == []:

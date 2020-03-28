@@ -1,7 +1,7 @@
 # テーマパークbot
 <img src="https://user-images.githubusercontent.com/26474260/76981453-f7f3cd00-697d-11ea-916b-0bccfc7723d8.jpg" width="500px">
 
-## 概要
+## コンセプト
 友人と遊園地で遊ぶときに便利なLINEbotです。
 
 割り勘やアトラクションのペア分けが、LINEグループやトークルーム内で完結します。
