@@ -78,15 +78,17 @@ def split(event):
     receive_msg = event.message.text
     if hasattr(event.source, "group_id"):
         group_id = event.source.group_id
+        get_member_profile = line_bot_api.get_group_member_profile
     elif hasattr(event.source, "room_id"):
         group_id = event.source.room_id
+        get_member_profile = line_bot_api.get_room_member_profile
     else:
         reply(event)
         return
     group_key = client.key("ThemeParkGroup", group_id)
     query = client.query(kind="ThemeParkUser", ancestor=group_key)
     user_infos = [{
-        "name": line_bot_api.get_room_member_profile(group_id, x.key.name).display_name)
+        "name": get_member_profile(group_id, x.key.name).display_name,
         "price": x["price"],
     } for x in query.fetch()]
     if user_infos == []:

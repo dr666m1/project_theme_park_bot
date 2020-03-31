@@ -12,7 +12,7 @@
 <img src="https://user-images.githubusercontent.com/26474260/69472396-f0b41c80-0dec-11ea-8520-f0f55cb9476c.png" width="100px">
 
 ## 割り勘
-<img src="https://user-images.githubusercontent.com/26474260/76966746-c6710680-6969-11ea-9eef-97345d50239e.jpg" width="250px">
+<img src="https://user-images.githubusercontent.com/26474260/78037475-93396900-73a6-11ea-8d23-c19a1988614b.png" width="250px">
 
 ### 出費の記録
 `Y`に続けて半角数字を入力すると自分の出費を記録できます（`Y`はYenの頭文字）。
