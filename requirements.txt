@@ -1,5 +1,3 @@
-google-python-cloud-debugger
 google-cloud-datastore==1.10.0
 line-bot-sdk==1.15.0
 Flask==1.1.1
-numpy==1.16.5
