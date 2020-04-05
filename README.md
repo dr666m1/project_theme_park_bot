@@ -1,5 +1,5 @@
 # テーマパークbot
-<img src="https://user-images.githubusercontent.com/26474260/76981453-f7f3cd00-697d-11ea-916b-0bccfc7723d8.jpg" width="500px">
+<img src="https://user-images.githubusercontent.com/26474260/78467641-a010e080-7749-11ea-9bda-d87bf7bf6935.png" width="500px">
 
 ## コンセプト
 友人と遊園地で遊ぶときに便利なLINEbotです。
@@ -7,9 +7,7 @@
 割り勘やアトラクションのペア分けが、LINEグループやトークルーム内で完結します。
 
 ## 準備
-以下のQRコードやID（`@541rhynx`）からbotをグループやトークルームに招待するだけです。
-
-<img src="https://user-images.githubusercontent.com/26474260/69472396-f0b41c80-0dec-11ea-8520-f0f55cb9476c.png" width="100px">
+上のQRコードやID（`@541rhynx`）からbotをグループやトークルームに招待するだけです。
 
 ## 割り勘
 <img src="https://user-images.githubusercontent.com/26474260/78037475-93396900-73a6-11ea-8d23-c19a1988614b.png" width="250px">
