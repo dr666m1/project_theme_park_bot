@@ -1,4 +1,4 @@
-**このbotは停止しました**
+**2020/10/24追記：このbotは停止しました**
 
 # テーマパークbot
 <img src="https://user-images.githubusercontent.com/26474260/78467641-a010e080-7749-11ea-9bda-d87bf7bf6935.png" width="600px">
